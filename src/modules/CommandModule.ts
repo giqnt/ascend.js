@@ -15,7 +15,7 @@ export class CommandModule extends Module {
     public async initialize(): Promise<void> {
         await this.registerCommands();
         this.bot.client.on("interactionCreate", (interaction) => {
-            if (!interaction.inCachedGuild() || !interaction.isCommand()) return;
+            if (!interaction.isCommand()) return;
             this.execute(interaction).catch((error: unknown) => {
                 this.bot.logger.error(new Error(`Failed to execute command "${interaction.commandName}" (${InteractionType[interaction.type]})`, { cause: error }));
             });
@@ -50,7 +50,7 @@ export class CommandModule extends Module {
         return results.size;
     }
 
-    private async execute(interaction: CommandInteraction<"cached">): Promise<void> {
+    private async execute(interaction: CommandInteraction): Promise<void> {
         const command = this._commands.get(interaction.commandName);
         if (command == null) {
             this.bot.logger.warn(`Command "${interaction.commandName}" (${InteractionType[interaction.type]}) not found.`);

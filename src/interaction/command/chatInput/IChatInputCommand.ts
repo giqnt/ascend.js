@@ -3,8 +3,8 @@ import type { ApplicationCommandOptionChoiceData, AutocompleteInteraction, ChatI
 import type { InteractionContext, InteractionOptions } from "interaction";
 import type { Promisable } from "type-fest";
 
-export type RawChatInputExecute = ChatInputCommandInteraction<"cached">;
-export type RawChatInputAutocomplete = AutocompleteInteraction<"cached">;
+export type RawChatInputExecute = ChatInputCommandInteraction;
+export type RawChatInputAutocomplete = AutocompleteInteraction;
 export type ChatInputParam = [context: InteractionContext<RawChatInputExecute>];
 
 export type AutocompleteHandler =
@@ -15,7 +15,7 @@ export interface ChatInputCommandOptions<Data> extends InteractionOptions<Data, 
 };
 
 export interface IChatInputCommand {
-    autocomplete(bot: Bot<true>, interaction: AutocompleteInteraction<"cached">): Promise<void>;
+    autocomplete(bot: Bot<true>, interaction: AutocompleteInteraction): Promise<void>;
 
     transform(bot: Bot<true>, interaction: RawChatInputExecute): ChatInputParam;
 }

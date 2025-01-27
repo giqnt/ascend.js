@@ -1,9 +1,7 @@
 import type { Bot } from "Bot";
 import type { BaseInteraction } from "discord.js";
 
-type CachedInteraction = BaseInteraction<"cached">;
-
-export class InteractionContext<T extends CachedInteraction> {
+export class InteractionContext<T extends BaseInteraction> {
     public readonly bot: Bot;
     public readonly interaction: T;
 
