@@ -36,7 +36,7 @@ interface BotMappedEvents {
 export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEvents> {
     public readonly environment: BotEnvironment;
     private readonly token: string;
-    public readonly _client: Client;
+    private readonly _client: Client;
     public readonly logger: ILogger;
     public readonly db: TypeOptions["db"];
     public readonly modules: TypeOptions["modules"];
