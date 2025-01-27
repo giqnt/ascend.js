@@ -1,6 +1,6 @@
 import { Logger } from "Logger";
 import type { ILogger } from "Logger";
-import type { ClientOptions } from "discord.js";
+import type { APIEmbed, BaseInteraction, ClientOptions, JSONEncodable } from "discord.js";
 import { Client, GatewayIntentBits } from "discord.js";
 import Emittery from "emittery";
 import { measureTime } from "utils/common";
@@ -8,6 +8,7 @@ import chalk from "chalk";
 import type { DbManager } from "db";
 import type { Module } from "BotModule";
 import type { Merge } from "type-fest";
+import type { InteractionContext } from "interaction";
 
 type BotEnvironment = "development" | "production";
 
@@ -19,6 +20,8 @@ type TypeOptions = Merge<{
     modules: Record<string, Module>;
 }, CustomTypeOptions>;
 
+type CreateDefaultEmbedFunction = (context?: InteractionContext<BaseInteraction>) => APIEmbed | JSONEncodable<APIEmbed> | null | undefined;
+
 export interface BotOptions {
     readonly environment: BotEnvironment;
     readonly token: string;
@@ -26,6 +29,7 @@ export interface BotOptions {
     readonly logger?: ILogger;
     readonly db: TypeOptions["db"];
     readonly createModules: (bot: Bot) => TypeOptions["modules"];
+    readonly createDefaultEmbed?: CreateDefaultEmbedFunction;
 }
 
 interface BotMappedEvents {
@@ -41,6 +45,7 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
     public readonly db: TypeOptions["db"];
     public readonly modules: TypeOptions["modules"];
     private _stopping = false;
+    public readonly createDefaultEmbed?: CreateDefaultEmbedFunction;
 
     public constructor(options: BotOptions) {
         super();
@@ -73,6 +78,7 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
                 this.logger.error(new Error("Error while stopping bot", { cause: error }));
             });
         });
+        this.createDefaultEmbed = options.createDefaultEmbed;
     }
 
     public async start(): Promise<void> {
