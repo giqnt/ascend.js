@@ -1,0 +1,65 @@
+{
+    "$schema": "https://json.schemastore.org/package.json",
+    "name": "ascend.js",
+    "version": "0.0.1",
+    "description": "A simple and easy-to-use Discord bot library based on discord.js.",
+    "keywords": [
+        "discord",
+        "bot",
+        "discord.js"
+    ],
+    "license": "Apache-2.0",
+    "author": {
+        "name": "giqnt",
+        "email": "me@giqnt.dev",
+        "url": "https://giqnt.dev"
+    },
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            },
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            }
+        }
+    },
+    "scripts": {
+        "build": "tsup"
+    },
+    "dependencies": {
+        "chalk": "^5.4.1",
+        "emittery": "^1.0.3",
+        "luxon": "^3.5.0"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.2.0",
+        "@types/luxon": "^3.4.2",
+        "@types/node": "^22.10.10",
+        "djs-eslint-config": "github:giqnt/djs-eslint-config",
+        "mongoose": "^8.9.5",
+        "tsup": "^8.3.6",
+        "type-fest": "^4.33.0"
+    },
+    "peerDependencies": {
+        "discord.js": "^14.17.3",
+        "typescript": "^5.7.3"
+    },
+    "packageManager": "bun@1.1.45",
+    "engines": {
+        "node": ">=20"
+    },
+    "publishConfig": {
+        "access": "public",
+        "provenance": true
+    }
+}

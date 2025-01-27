@@ -1,0 +1,29 @@
+name: Publish Release
+on:
+  release:
+    types: [published]
+jobs:
+  npm-publish:
+    name: npm publish
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'giqnt' && github.event.release.draft == false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: ".bun-version"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build dependencies
+        run: bun run build
+
+      - name: Publish package
+        run: |
+          bun publish
+        env:
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
