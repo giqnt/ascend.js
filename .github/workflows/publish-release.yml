@@ -6,6 +6,9 @@ jobs:
   npm-publish:
     name: npm publish
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     if: github.repository_owner == 'giqnt' && github.event.release.draft == false
     steps:
       - name: Checkout repository
