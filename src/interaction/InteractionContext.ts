@@ -12,7 +12,7 @@ export class InteractionContext<T extends BaseInteraction> {
     }
 
     public get bot(): Bot {
-        if (!this.bot.isReady()) {
+        if (!this._bot.isReady()) {
             throw new Error("Bot is not ready.");
         }
         return this._bot;
