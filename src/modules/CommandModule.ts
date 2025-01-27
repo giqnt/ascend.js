@@ -3,14 +3,28 @@ import { Module } from "BotModule";
 import type { Promisable } from "type-fest";
 import { measureTime } from "utils/common";
 import type { Command } from "interaction";
+import type { ApplicationCommandData, ApplicationIntegrationType, CommandInteraction, InteractionContextType } from "discord.js";
 import { InteractionType } from "discord.js";
-import type { ApplicationCommandData, CommandInteraction } from "discord.js";
+import type { Bot } from "Bot";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyCommand = Command<ApplicationCommandData, any, any[]>;
 
+interface CommandModuleOptions {
+    readonly defaultContexts?: readonly InteractionContextType[];
+    readonly defaultIntegrationTypes?: readonly ApplicationIntegrationType[];
+}
+
 export class CommandModule extends Module {
     protected readonly _commands = new Map<string, AnyCommand>();
+    private readonly defaultContexts?: readonly InteractionContextType[];
+    private readonly defaultIntegrationTypes?: readonly ApplicationIntegrationType[];
+
+    public constructor(bot: Bot, options?: CommandModuleOptions) {
+        super(bot);
+        this.defaultContexts = options?.defaultContexts;
+        this.defaultIntegrationTypes = options?.defaultIntegrationTypes;
+    }
 
     public async initialize(): Promise<void> {
         await this.registerCommands();
@@ -44,7 +58,11 @@ export class CommandModule extends Module {
 
     private async _registerCommands(): Promise<number> {
         const data = this._commands.values()
-            .map((command) => command.data)
+            .map((command) => ({
+                ...command.data,
+                contexts: command.data.contexts ?? this.defaultContexts,
+                integrationTypes: command.data.integrationTypes ?? this.defaultIntegrationTypes,
+            }))
             .toArray();
         const results = await this.bot.client.application.commands.set(data);
         return results.size;
