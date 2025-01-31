@@ -38,13 +38,13 @@
     },
     "dependencies": {
         "chalk": "^5.4.1",
-        "emittery": "^1.0.3",
+        "emittery": "^1.1.0",
         "luxon": "^3.5.0"
     },
     "devDependencies": {
-        "@types/bun": "^1.2.0",
+        "@types/bun": "^1.2.1",
         "@types/luxon": "^3.4.2",
-        "@types/node": "^22.10.10",
+        "@types/node": "^22.12.0",
         "djs-eslint-config": "github:giqnt/djs-eslint-config",
         "mongoose": "^8.9.5",
         "tsup": "^8.3.6",
