@@ -9,6 +9,7 @@ import type { DbManager } from "db";
 import type { Module } from "BotModule";
 import type { Merge } from "type-fest";
 import type { InteractionContext } from "interaction";
+import type { UserError } from "errors/UserError";
 
 type BotEnvironment = "development" | "production";
 
@@ -20,7 +21,9 @@ type TypeOptions = Merge<{
     modules: Record<string, Module>;
 }, CustomTypeOptions>;
 
-type CreateDefaultEmbedFunction = (context?: InteractionContext<BaseInteraction>) => APIEmbed | JSONEncodable<APIEmbed> | null | undefined;
+export type EmbedLike = APIEmbed | JSONEncodable<APIEmbed>;
+type CreateDefaultEmbedFunction = (context?: InteractionContext<BaseInteraction>) => EmbedLike | null | undefined;
+type CreateUserErrorEmbedFunction = (error: UserError) => EmbedLike | null | undefined;
 
 export interface BotOptions {
     readonly environment: BotEnvironment;
@@ -29,7 +32,13 @@ export interface BotOptions {
     readonly logger?: ILogger;
     readonly db: TypeOptions["db"];
     readonly createModules: (bot: Bot) => TypeOptions["modules"];
+    readonly style?: BotStyleOptions;
+}
+
+export interface BotStyleOptions {
     readonly createDefaultEmbed?: CreateDefaultEmbedFunction;
+    readonly unknownErrorEmbed?: EmbedLike;
+    readonly createUserErrorEmbed?: CreateUserErrorEmbedFunction;
 }
 
 interface BotMappedEvents {
@@ -44,8 +53,8 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
     public readonly logger: ILogger;
     public readonly db: TypeOptions["db"];
     public readonly modules: TypeOptions["modules"];
+    public readonly style: BotStyleOptions;
     private _stopping = false;
-    public readonly createDefaultEmbed?: CreateDefaultEmbedFunction;
 
     public constructor(options: BotOptions) {
         super();
@@ -78,7 +87,9 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
                 this.logger.error(new Error("Error while stopping bot", { cause: error }));
             });
         });
-        this.createDefaultEmbed = options.createDefaultEmbed;
+        this.style = {
+            ...options.style,
+        };
     }
 
     public async start(): Promise<void> {

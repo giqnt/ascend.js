@@ -4,8 +4,9 @@ import type { Promisable } from "type-fest";
 import { measureTime } from "utils/common";
 import type { Command } from "interaction";
 import type { ApplicationCommandData, ApplicationIntegrationType, CommandInteraction, InteractionContextType } from "discord.js";
-import { InteractionType } from "discord.js";
-import type { Bot } from "Bot";
+import { ApplicationCommandType, EmbedBuilder, InteractionType, MessageFlags } from "discord.js";
+import type { Bot, EmbedLike } from "Bot";
+import { UserError } from "errors/UserError";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyCommand = Command<ApplicationCommandData, any, any[]>;
@@ -30,9 +31,7 @@ export class CommandModule extends Module {
         await this.registerCommands();
         this.bot.client.on("interactionCreate", (interaction) => {
             if (!interaction.isCommand()) return;
-            this.execute(interaction).catch((error: unknown) => {
-                this.bot.logger.error(new Error(`Failed to execute command "${interaction.commandName}" (${InteractionType[interaction.type]})`, { cause: error }));
-            });
+            this.execute(interaction).catch((error: unknown) => this.onError(interaction, error));
         });
     }
 
@@ -75,5 +74,29 @@ export class CommandModule extends Module {
             return;
         }
         await command.execute(this.bot, interaction);
+    }
+
+    private async onError(interaction: CommandInteraction, error: unknown): Promise<void> {
+        const isUserError = error instanceof UserError;
+        const embedLike: NonNullable<EmbedLike> = isUserError
+            ? (this.bot.style.createUserErrorEmbed?.(error)
+                ?? new EmbedBuilder()
+                    .setColor("#E61B05")
+                    .setDescription(error.message))
+            : (this.bot.style.unknownErrorEmbed
+                ?? new EmbedBuilder()
+                    .setColor("#E61B05")
+                    .setDescription("An unexpected error occurred"));
+        const embed = "toJSON" in embedLike ? new EmbedBuilder(embedLike.toJSON()) : new EmbedBuilder(embedLike);
+        if (isUserError) {
+            if (interaction.replied || interaction.deferred) {
+                await interaction.editReply({ embeds: [embed], content: null, files: [], components: [] });
+            } else {
+                await interaction.reply({ embeds: [embed], flags: [MessageFlags.Ephemeral] });
+            }
+        } else {
+            await interaction.followUp({ embeds: [embed] });
+            await this.bot.logger.error(new Error(`Failed to execute command "${interaction.commandName}" (${ApplicationCommandType[interaction.commandType]})`, { cause: error }));
+        }
     }
 }

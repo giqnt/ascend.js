@@ -47,7 +47,7 @@ export class InteractionContext<T extends BaseInteraction> {
     }
 
     public embed(): EmbedBuilder {
-        const embed = this.bot.createDefaultEmbed?.(this);
+        const embed = this.bot.style.createDefaultEmbed?.(this);
         if (embed == null) {
             return new EmbedBuilder();
         }
