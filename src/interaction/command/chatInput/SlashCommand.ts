@@ -1,12 +1,11 @@
 import type { ChatInputApplicationCommandData } from "discord.js";
 import { ApplicationCommandOptionType, ApplicationCommandType } from "discord.js";
-import type { Bot } from "Bot";
-import { InteractionContext } from "interaction/InteractionContext";
 import type { CommandOptions } from "../Command";
 import { Command } from "../Command";
 import type { AutocompleteHandler, ChatInputCommandOptions, ChatInputParam, IChatInputCommand, RawChatInputAutocomplete, RawChatInputExecute } from "./IChatInputCommand";
 import type { SubCommand } from "./SubCommand";
 import type { SubCommandGroup } from "./SubCommandGroup";
+import type { Bot } from "Bot";
 
 type Data = ChatInputApplicationCommandData;
 
@@ -54,8 +53,8 @@ export class SlashCommand extends Command<Data, RawChatInputExecute, ChatInputPa
         await super.execute(bot, interaction);
     }
 
-    public override transform(bot: Bot<true>, args: RawChatInputExecute): ChatInputParam {
-        return [new InteractionContext(bot, args)];
+    public override async transform(bot: Bot<true>, args: RawChatInputExecute): Promise<ChatInputParam> {
+        return [await bot.interactionContextCreator(args)];
     }
 
     public async autocomplete(bot: Bot<true>, interaction: RawChatInputAutocomplete): Promise<void> {

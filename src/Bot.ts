@@ -1,25 +1,15 @@
-import { Logger } from "Logger";
-import type { ILogger } from "Logger";
 import type { APIEmbed, BaseInteraction, ClientOptions, JSONEncodable } from "discord.js";
 import { Client, GatewayIntentBits } from "discord.js";
 import Emittery from "emittery";
-import { measureTime } from "utils/common";
 import chalk from "chalk";
-import type { DbManager } from "db";
-import type { Module } from "BotModule";
-import type { Merge } from "type-fest";
-import type { InteractionContext } from "interaction";
+import { Logger } from "Logger";
+import type { ILogger } from "Logger";
+import { measureTime } from "utils/common";
+import { InteractionContext } from "interaction";
 import type { UserError } from "errors/UserError";
+import type { TypeOptions } from "types";
 
 type BotEnvironment = "development" | "production";
-
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface CustomTypeOptions {};
-
-type TypeOptions = Merge<{
-    db: DbManager | undefined;
-    modules: Record<string, Module>;
-}, CustomTypeOptions>;
 
 export type EmbedLike = APIEmbed | JSONEncodable<APIEmbed>;
 type CreateDefaultEmbedFunction = (context?: InteractionContext<BaseInteraction>) => EmbedLike | null | undefined;
@@ -33,6 +23,7 @@ export interface BotOptions {
     readonly db: TypeOptions["db"];
     readonly createModules: (bot: Bot) => TypeOptions["modules"];
     readonly style?: BotStyleOptions;
+    readonly interactionContextCreator?: TypeOptions["interactionContextCreator"];
 }
 
 export interface BotStyleOptions {
@@ -54,6 +45,7 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
     public readonly db: TypeOptions["db"];
     public readonly modules: TypeOptions["modules"];
     public readonly style: BotStyleOptions;
+    public readonly interactionContextCreator: TypeOptions["interactionContextCreator"];
     private _stopping = false;
 
     public constructor(options: BotOptions) {
@@ -76,6 +68,11 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
         this.logger = options.logger ?? new Logger("Bot");
         this.db = options.db;
         this.modules = options.createModules(this);
+        this.style = {
+            ...options.style,
+        };
+        this.interactionContextCreator = options.interactionContextCreator
+            ?? ((interaction) => new InteractionContext(this, interaction));
         this._client.on("error", (error) => {
             this.logger.error(error);
         });
@@ -87,9 +84,6 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
                 this.logger.error(new Error("Error while stopping bot", { cause: error }));
             });
         });
-        this.style = {
-            ...options.style,
-        };
     }
 
     public async start(): Promise<void> {

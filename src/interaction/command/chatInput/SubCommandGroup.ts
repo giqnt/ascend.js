@@ -1,10 +1,9 @@
 import { ApplicationCommandOptionType } from "discord.js";
 import type { ApplicationCommandSubGroupData } from "discord.js";
-import type { Bot } from "Bot";
-import { Interaction } from "interaction/Interaction";
-import { InteractionContext } from "interaction/InteractionContext";
 import type { SubCommand } from "./SubCommand";
 import type { ChatInputCommandOptions, ChatInputParam, IChatInputCommand, RawChatInputAutocomplete, RawChatInputExecute } from "./IChatInputCommand";
+import type { Bot } from "Bot";
+import { Interaction } from "interaction/Interaction";
 
 type Data = ApplicationCommandSubGroupData;
 interface SubCommandGroupOptions extends Omit<ChatInputCommandOptions<Omit<Data, "type" | "options">>, "execute"> {
@@ -43,8 +42,8 @@ export class SubCommandGroup extends Interaction<Data, RawChatInputExecute, Chat
         throw new Error("execute 감지 실패");
     }
 
-    public override transform(bot: Bot<true>, args: RawChatInputExecute): ChatInputParam {
-        return [new InteractionContext(bot, args)];
+    public override async transform(bot: Bot<true>, args: RawChatInputExecute): Promise<ChatInputParam> {
+        return [await bot.interactionContextCreator(args)];
     }
 
     public async autocomplete(bot: Bot<true>, interaction: RawChatInputAutocomplete) {

@@ -1,7 +1,7 @@
-import type { Bot } from "Bot";
 import type { ApplicationCommandOptionChoiceData, AutocompleteInteraction, ChatInputCommandInteraction } from "discord.js";
-import type { InteractionContext, InteractionOptions } from "interaction";
 import type { Promisable } from "type-fest";
+import type { Bot } from "Bot";
+import type { InteractionContext, InteractionOptions } from "interaction";
 
 export type RawChatInputExecute = ChatInputCommandInteraction;
 export type RawChatInputAutocomplete = AutocompleteInteraction;
@@ -17,5 +17,5 @@ export interface ChatInputCommandOptions<Data> extends InteractionOptions<Data, 
 export interface IChatInputCommand {
     autocomplete(bot: Bot<true>, interaction: AutocompleteInteraction): Promise<void>;
 
-    transform(bot: Bot<true>, interaction: RawChatInputExecute): ChatInputParam;
+    transform(bot: Bot<true>, interaction: RawChatInputExecute): Promise<ChatInputParam>;
 }

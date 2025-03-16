@@ -1,9 +1,8 @@
 import { ApplicationCommandOptionType } from "discord.js";
 import type { ApplicationCommandSubCommandData } from "discord.js";
-import { Interaction } from "interaction/Interaction";
-import { InteractionContext } from "interaction/InteractionContext";
-import type { Bot } from "Bot";
 import type { AutocompleteHandler, ChatInputCommandOptions, ChatInputParam, IChatInputCommand, RawChatInputAutocomplete, RawChatInputExecute } from "./IChatInputCommand";
+import { Interaction } from "interaction/Interaction";
+import type { Bot } from "Bot";
 
 type Data = ApplicationCommandSubCommandData;
 
@@ -25,8 +24,8 @@ export class SubCommand extends Interaction<Data, RawChatInputExecute, ChatInput
         return interaction.options.getSubcommand(false) === this.data.name;
     }
 
-    public override transform(bot: Bot<true>, interaction: RawChatInputExecute): ChatInputParam {
-        return [new InteractionContext(bot, interaction)];
+    public override async transform(bot: Bot<true>, args: RawChatInputExecute): Promise<ChatInputParam> {
+        return [await bot.interactionContextCreator(args)];
     }
 
     public async autocomplete(bot: Bot<true>, interaction: RawChatInputAutocomplete): Promise<void> {
