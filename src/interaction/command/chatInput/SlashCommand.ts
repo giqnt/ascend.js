@@ -54,7 +54,7 @@ export class SlashCommand extends Command<Data, RawChatInputExecute, ChatInputPa
     }
 
     public override async transform(bot: Bot<true>, args: RawChatInputExecute): Promise<ChatInputParam> {
-        return [await bot.interactionContextCreator(args)];
+        return [await bot.interactionHookCreator(args)];
     }
 
     public async autocomplete(bot: Bot<true>, interaction: RawChatInputAutocomplete): Promise<void> {

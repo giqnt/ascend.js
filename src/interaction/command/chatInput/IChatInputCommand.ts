@@ -1,11 +1,11 @@
 import type { ApplicationCommandOptionChoiceData, AutocompleteInteraction, ChatInputCommandInteraction } from "discord.js";
 import type { Promisable } from "type-fest";
 import type { Bot } from "Bot";
-import type { InteractionContext, InteractionOptions } from "interaction";
+import type { InteractionHook, InteractionOptions } from "interaction";
 
 export type RawChatInputExecute = ChatInputCommandInteraction;
 export type RawChatInputAutocomplete = AutocompleteInteraction;
-export type ChatInputParam = [context: InteractionContext<RawChatInputExecute>];
+export type ChatInputParam = [hook: InteractionHook<RawChatInputExecute>];
 
 export type AutocompleteHandler =
     (bot: Bot<true>, options: RawChatInputAutocomplete["options"]) => Promisable<ApplicationCommandOptionChoiceData[] | undefined>;

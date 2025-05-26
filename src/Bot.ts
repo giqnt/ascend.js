@@ -5,14 +5,14 @@ import chalk from "chalk";
 import { Logger } from "Logger";
 import type { ILogger } from "Logger";
 import { measureTime } from "utils/common";
-import { InteractionContext } from "interaction";
+import { InteractionHook } from "interaction";
 import type { UserError } from "errors/UserError";
 import type { TypeOptions } from "types";
 
 type BotEnvironment = "development" | "production";
 
 export type EmbedLike = APIEmbed | JSONEncodable<APIEmbed>;
-type CreateDefaultEmbedFunction = (context?: InteractionContext<BaseInteraction>) => EmbedLike | null | undefined;
+type CreateDefaultEmbedFunction = (hook?: InteractionHook<BaseInteraction>) => EmbedLike | null | undefined;
 type CreateUserErrorEmbedFunction = (error: UserError) => EmbedLike | null | undefined;
 
 export interface BotOptions {
@@ -23,7 +23,7 @@ export interface BotOptions {
     readonly db: TypeOptions["db"];
     readonly createModules: (bot: Bot) => TypeOptions["modules"];
     readonly style?: BotStyleOptions;
-    readonly interactionContextCreator?: TypeOptions["interactionContextCreator"];
+    readonly interactionHookCreator?: TypeOptions["interactionHookCreator"];
 }
 
 export interface BotStyleOptions {
@@ -45,7 +45,7 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
     public readonly db: TypeOptions["db"];
     public readonly modules: TypeOptions["modules"];
     public readonly style: BotStyleOptions;
-    public readonly interactionContextCreator: TypeOptions["interactionContextCreator"];
+    public readonly interactionHookCreator: TypeOptions["interactionHookCreator"];
     private _stopping = false;
 
     public constructor(options: BotOptions) {
@@ -71,8 +71,8 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
         this.style = {
             ...options.style,
         };
-        this.interactionContextCreator = options.interactionContextCreator
-            ?? ((interaction) => new InteractionContext(this, interaction));
+        this.interactionHookCreator = options.interactionHookCreator
+            ?? ((interaction) => new InteractionHook(this, interaction));
         this._client.on("error", (error) => {
             this.logger.error(error);
         });

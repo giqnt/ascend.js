@@ -2,7 +2,7 @@ import { EmbedBuilder } from "discord.js";
 import type { BaseInteraction } from "discord.js";
 import type { Bot } from "Bot";
 
-export class InteractionContext<T extends BaseInteraction> {
+export class InteractionHook<T extends BaseInteraction> {
     public readonly _bot: Bot;
     public readonly interaction: T;
 
