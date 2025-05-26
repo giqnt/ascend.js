@@ -1,6 +1,7 @@
 export * from "Bot";
 export * from "BotModule";
 export * from "Logger";
+export * from "./types";
 export * from "db";
 export * from "errors";
 export * from "interaction";
