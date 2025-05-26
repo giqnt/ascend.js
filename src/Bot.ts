@@ -18,7 +18,7 @@ type CreateUserErrorEmbedFunction = (error: UserError) => EmbedLike | null | und
 export interface BotOptions {
     readonly environment: BotEnvironment;
     readonly token: string;
-    readonly client?: ClientOptions;
+    readonly clientOptions?: ClientOptions;
     readonly logger?: ILogger;
     readonly db: TypeOptions["db"];
     readonly createModules: (bot: Bot) => TypeOptions["modules"];
@@ -63,7 +63,7 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
             allowedMentions: {
                 repliedUser: false,
             },
-            ...options.client,
+            ...options.clientOptions,
         });
         this.logger = options.logger ?? new Logger("Bot");
         this.db = options.db;
