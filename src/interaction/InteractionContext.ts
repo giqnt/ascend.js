@@ -1,6 +1,6 @@
-import type { Bot } from "Bot";
 import { EmbedBuilder } from "discord.js";
 import type { BaseInteraction } from "discord.js";
+import type { Bot } from "Bot";
 
 export class InteractionContext<T extends BaseInteraction> {
     public readonly _bot: Bot;

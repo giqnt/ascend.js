@@ -1,5 +1,5 @@
-import type { Bot } from "Bot";
 import type { Promisable } from "type-fest";
+import type { Bot } from "Bot";
 
 export abstract class Module {
     private readonly _bot: Bot;

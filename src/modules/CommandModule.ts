@@ -1,10 +1,10 @@
 import chalk from "chalk";
-import { Module } from "BotModule";
 import type { Promisable } from "type-fest";
-import { measureTime } from "utils/common";
-import type { Command } from "interaction";
 import type { ApplicationCommandData, ApplicationIntegrationType, CommandInteraction, InteractionContextType } from "discord.js";
 import { ApplicationCommandType, EmbedBuilder, InteractionType, MessageFlags } from "discord.js";
+import { Module } from "BotModule";
+import { measureTime } from "utils/common";
+import type { Command } from "interaction";
 import type { Bot, EmbedLike } from "Bot";
 import { UserError } from "errors/UserError";
 

@@ -1,5 +1,5 @@
-import type { Bot } from "Bot";
 import type { Promisable } from "type-fest";
+import type { Bot } from "Bot";
 
 type ExecuteFunction<Param extends unknown[]> = (...args: Param) => Promisable<void>;
 
