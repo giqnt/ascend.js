@@ -14,17 +14,20 @@ type AnyCommand = Command<ApplicationCommandData, any, any[]>;
 interface CommandModuleOptions {
     readonly defaultContexts?: readonly InteractionContextType[];
     readonly defaultIntegrationTypes?: readonly ApplicationIntegrationType[];
+    readonly defaultGuildIds?: readonly string[];
 }
 
 export class CommandModule extends Module {
     protected readonly _commands = new Map<string, AnyCommand>();
     private readonly defaultContexts?: readonly InteractionContextType[];
     private readonly defaultIntegrationTypes?: readonly ApplicationIntegrationType[];
+    private readonly defaultGuildIds?: readonly string[];
 
     public constructor(bot: Bot, options?: CommandModuleOptions) {
         super(bot);
         this.defaultContexts = options?.defaultContexts;
         this.defaultIntegrationTypes = options?.defaultIntegrationTypes;
+        this.defaultGuildIds = options?.defaultGuildIds;
     }
 
     public async initialize(): Promise<void> {
@@ -52,19 +55,42 @@ export class CommandModule extends Module {
     public async registerCommands(): Promise<void> {
         this.bot.logger.info("Registering commands...");
         const [count, time] = await measureTime(() => this._registerCommands());
-        this.bot.logger.info(chalk.magenta(`Registered ${count} slash commands. `) + chalk.gray(`[took ${time.toFixed(2)}ms]`));
+        this.bot.logger.info(chalk.magenta(`Registered ${count} commands in total. `) + chalk.gray(`[took ${time.toFixed(2)}ms]`));
     }
 
     private async _registerCommands(): Promise<number> {
-        const data = this._commands.values()
-            .map((command) => ({
+        const globalCommands: ApplicationCommandData[] = [];
+        const commandsByGuildId = new Map<string, ApplicationCommandData[]>();
+        for (const command of this._commands.values()) {
+            const data: ApplicationCommandData = {
+                contexts: this.defaultContexts,
+                integrationTypes: this.defaultIntegrationTypes,
                 ...command.data,
-                contexts: command.data.contexts ?? this.defaultContexts,
-                integrationTypes: command.data.integrationTypes ?? this.defaultIntegrationTypes,
-            }))
-            .toArray();
-        const results = await this.bot.client.application.commands.set(data);
-        return results.size;
+            };
+            const guildIds = command.guildIds ?? this.defaultGuildIds;
+            if (guildIds != null && guildIds.length > 0) {
+                for (const guildId of guildIds) {
+                    const list = commandsByGuildId.get(guildId) ?? [];
+                    if (!commandsByGuildId.has(guildId)) commandsByGuildId.set(guildId, list);
+                    list.push(data);
+                }
+            } else {
+                globalCommands.push(data);
+            }
+        }
+
+        let count = 0;
+        {
+            const result = await this.bot.client.application.commands.set(globalCommands);
+            count += result.size;
+            this.bot.logger.info(`Registered ${result.size} global commands.`);
+        }
+        for (const [guildId, commands] of commandsByGuildId.entries()) {
+            const result = await this.bot.client.application.commands.set(commands, guildId);
+            count += result.size;
+            this.bot.logger.info(`Registered ${result.size} commands for guild ${chalk.cyan(guildId)}.`);
+        }
+        return count;
     }
 
     private async execute(interaction: CommandInteraction): Promise<void> {
