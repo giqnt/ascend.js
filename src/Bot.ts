@@ -21,7 +21,6 @@ export interface BotOptions {
     readonly clientOptions?: ClientOptions;
     readonly logger?: ILogger;
     readonly db: TypeOptions["db"];
-    readonly createModules: (bot: Bot) => TypeOptions["modules"];
     readonly style?: BotStyleOptions;
     readonly interactionHookCreator?: TypeOptions["interactionHookCreator"];
 }
@@ -33,8 +32,8 @@ export interface BotStyleOptions {
 }
 
 interface BotMappedEvents {
-    preInitialize: Bot<true>;
-    initialize: Bot<true>;
+    preInitialize: { bot: Bot<true>; setModules: (modules: TypeOptions["modules"]) => void };
+    initialize: { bot: Bot<true> };
 }
 
 export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEvents> {
@@ -43,9 +42,9 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
     private readonly _client: Client;
     public readonly logger: ILogger;
     public readonly db: TypeOptions["db"];
-    public readonly modules: TypeOptions["modules"];
     public readonly style: BotStyleOptions;
     public readonly interactionHookCreator: TypeOptions["interactionHookCreator"];
+    private _modules?: TypeOptions["modules"];
     private _stopping = false;
 
     public constructor(options: BotOptions) {
@@ -67,7 +66,6 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
         });
         this.logger = options.logger ?? new Logger("Bot");
         this.db = options.db;
-        this.modules = options.createModules(this);
         this.style = {
             ...options.style,
         };
@@ -122,15 +120,30 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
         return this._client as never;
     }
 
+    public get modules(): TypeOptions["modules"] {
+        if (this._modules == null) {
+            throw new Error("Modules are not set yet");
+        }
+        return this._modules;
+    }
+
     private async onReady(): Promise<void> {
         if (!this.isReady()) {
             throw new Error("Invalid ready state for onReady");
         }
         this.logger.info("Initializing...");
-        await this.emit("preInitialize", this).catch((error: unknown) => {
+        await this.emit("preInitialize", {
+            bot: this,
+            setModules: (modules) => {
+                this._modules = modules;
+            },
+        }).catch((error: unknown) => {
             throw new Error("Failed to process preInitialize event", { cause: error });
         });
-        for (const [name, module] of Object.entries(this.modules)) {
+        if (this._modules == null) {
+            throw new Error("Modules are not set yet");
+        }
+        for (const [name, module] of Object.entries(this._modules)) {
             try {
                 const [, time] = await measureTime(() => module.initialize());
                 this.logger.info(`Module "${name}" initialized ${chalk.gray(`[took ${time.toFixed(2)}ms]`)}`);
@@ -138,11 +151,11 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
                 throw new Error(`Error while initializing module "${name}"`, { cause: error });
             }
         }
-        await this.emit("initialize", this).catch((error: unknown) => {
+        await this.emit("initialize", { bot: this }).catch((error: unknown) => {
             throw new Error("Failed to process initialize event", { cause: error });
         });
         this.logger.info(chalk.underline.green("Bot is ready"));
-        Object.entries(this.modules).forEach(([name, module]) => {
+        Object.entries(this._modules).forEach(([name, module]) => {
             (async () => {
                 await module.onReady();
             })().catch(async (error: unknown) => {

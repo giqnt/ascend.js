@@ -1,15 +1,11 @@
 import type { Promisable } from "type-fest";
 import type { Bot } from "Bot";
 
-export abstract class Module {
-    private readonly _bot: Bot;
+export abstract class Module<ReadyBot extends Bot<true> = Bot<true>> {
+    public readonly bot: ReadyBot;
 
-    public constructor(bot: Bot) {
-        this._bot = bot;
-    }
-
-    public get bot(): Bot<true> {
-        return this._bot as Bot<true>;
+    public constructor(bot: ReadyBot) {
+        this.bot = bot;
     }
 
     public abstract initialize(): Promisable<void>;
