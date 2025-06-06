@@ -1,9 +1,10 @@
 import chalk from "chalk";
 import type { Promisable } from "type-fest";
-import type { ApplicationCommandData, ApplicationIntegrationType, CommandInteraction, InteractionContextType } from "discord.js";
+import type { ApplicationCommandData, ApplicationIntegrationType, AutocompleteInteraction, CommandInteraction, InteractionContextType } from "discord.js";
 import { ApplicationCommandType, EmbedBuilder, InteractionType, MessageFlags } from "discord.js";
 import { Module } from "BotModule";
 import { measureTime } from "utils/common";
+import { SlashCommand } from "interaction";
 import type { Command } from "interaction";
 import type { Bot, EmbedLike } from "Bot";
 import { UserError } from "errors/UserError";
@@ -33,8 +34,13 @@ export class CommandModule extends Module {
     public async initialize(): Promise<void> {
         await this.registerCommands();
         this.bot.client.on("interactionCreate", (interaction) => {
-            if (!interaction.isCommand()) return;
-            this.execute(interaction).catch((error: unknown) => this.onError(interaction, error));
+            if (interaction.isCommand()) {
+                this.execute(interaction).catch((error: unknown) => this.onError(interaction, error));
+            } else if (interaction.isAutocomplete()) {
+                this.autocomplete(interaction).catch((error: unknown) => {
+                    this.bot.logger.error(new Error(`Failed to autocomplete command "${interaction.commandName}" (${ApplicationCommandType[interaction.commandType]})`, { cause: error }));
+                });
+            }
         });
     }
 
@@ -124,5 +130,18 @@ export class CommandModule extends Module {
             await interaction.followUp({ embeds: [embed] });
             await this.bot.logger.error(new Error(`Failed to execute command "${interaction.commandName}" (${ApplicationCommandType[interaction.commandType]})`, { cause: error }));
         }
+    }
+
+    private async autocomplete(interaction: AutocompleteInteraction): Promise<void> {
+        const command = this._commands.get(interaction.commandName);
+        if (command == null) {
+            this.bot.logger.warn(`Command "${interaction.commandName}" (${InteractionType[interaction.type]}) not found.`);
+            return;
+        }
+        if (!(command instanceof SlashCommand)) {
+            this.bot.logger.warn(`Command "${interaction.commandName}" (${InteractionType[interaction.type]}) is not a slash command.`);
+            return;
+        }
+        await command.autocomplete(this.bot, interaction);
     }
 }
