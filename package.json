@@ -34,7 +34,10 @@
         }
     },
     "scripts": {
-        "build": "tsup"
+        "build": "tsup",
+        "lint": "eslint ./src",
+        "lint:fix": "eslint ./src --fix",
+        "typecheck": "tsc --noEmit"
     },
     "dependencies": {
         "chalk": "^5.4.1",
