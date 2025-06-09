@@ -48,7 +48,7 @@ export class SlashCommand extends Command<Data, RawChatInputExecute, ChatInputPa
                     return;
                 }
             }
-            throw new Error("execute 감지 실패");
+            throw new Error(`No matching subcommand found for command '${this.name}'`);
         }
         await super.execute(bot, interaction);
     }
@@ -67,7 +67,7 @@ export class SlashCommand extends Command<Data, RawChatInputExecute, ChatInputPa
                     return;
                 }
             }
-            throw new Error("autocomplete 감지 실패");
+            throw new Error(`No matching subcommand found for autocomplete in command '${this.name}'`);
         } else {
             await interaction.respond(await this._autocomplete?.(bot, interaction.options) ?? []);
             return;
