@@ -1,13 +1,12 @@
 import chalk from "chalk";
 import type { Promisable } from "type-fest";
 import type { ApplicationCommandData, ApplicationIntegrationType, AutocompleteInteraction, CommandInteraction, InteractionContextType } from "discord.js";
-import { ApplicationCommandType, EmbedBuilder, InteractionType, MessageFlags } from "discord.js";
+import { InteractionType } from "discord.js";
 import { Module } from "BotModule";
 import { measureTime } from "utils/common";
 import { SlashCommand } from "interaction";
 import type { Command } from "interaction";
-import type { Bot, EmbedLike } from "Bot";
-import { UserError } from "errors/UserError";
+import type { Bot } from "Bot";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyCommand = Command<ApplicationCommandData, any, any[]>;
@@ -33,14 +32,15 @@ export class CommandModule extends Module {
 
     public async initialize(): Promise<void> {
         await this.registerCommands();
-        this.bot.client.on("interactionCreate", (interaction) => {
-            if (interaction.isCommand()) {
-                this.execute(interaction).catch((error: unknown) => this.onError(interaction, error));
-            } else if (interaction.isAutocomplete()) {
-                this.autocomplete(interaction).catch((error: unknown) => {
-                    this.bot.logger.error(new Error(`Failed to autocomplete command "${interaction.commandName}" (${ApplicationCommandType[interaction.commandType]})`, { cause: error }));
-                });
+        this.bot.registerInteractionListener(async (hook) => {
+            if (hook.interaction.isCommand()) {
+                await this.execute(hook.interaction);
+                return true;
+            } else if (hook.interaction.isAutocomplete()) {
+                await this.autocomplete(hook.interaction);
+                return true;
             }
+            return false;
         });
     }
 
@@ -106,30 +106,6 @@ export class CommandModule extends Module {
             return;
         }
         await command.execute(this.bot, interaction);
-    }
-
-    private async onError(interaction: CommandInteraction, error: unknown): Promise<void> {
-        const isUserError = error instanceof UserError;
-        const embedLike: NonNullable<EmbedLike> = isUserError
-            ? (this.bot.style.createUserErrorEmbed?.(error)
-                ?? new EmbedBuilder()
-                    .setColor("#E61B05")
-                    .setDescription(error.message))
-            : (this.bot.style.unknownErrorEmbed
-                ?? new EmbedBuilder()
-                    .setColor("#E61B05")
-                    .setDescription("An unexpected error occurred"));
-        const embed = "toJSON" in embedLike ? new EmbedBuilder(embedLike.toJSON()) : new EmbedBuilder(embedLike);
-        if (isUserError) {
-            if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [embed], content: null, files: [], components: [] });
-            } else {
-                await interaction.reply({ embeds: [embed], flags: [MessageFlags.Ephemeral] });
-            }
-        } else {
-            await interaction.followUp({ embeds: [embed] });
-            await this.bot.logger.error(new Error(`Failed to execute command "${interaction.commandName}" (${ApplicationCommandType[interaction.commandType]})`, { cause: error }));
-        }
     }
 
     private async autocomplete(interaction: AutocompleteInteraction): Promise<void> {

@@ -2,6 +2,7 @@ import type { APIEmbed, BaseInteraction, ClientOptions, JSONEncodable } from "di
 import { Client, GatewayIntentBits } from "discord.js";
 import Emittery from "emittery";
 import chalk from "chalk";
+import type { Promisable } from "type-fest";
 import { Logger } from "Logger";
 import type { ILogger } from "Logger";
 import { measureTime } from "utils/common";
@@ -14,6 +15,7 @@ type BotEnvironment = "development" | "production";
 export type EmbedLike = APIEmbed | JSONEncodable<APIEmbed>;
 type CreateDefaultEmbedFunction = (hook?: InteractionHook<BaseInteraction>) => EmbedLike | null | undefined;
 type CreateUserErrorEmbedFunction = (error: UserError) => EmbedLike | null | undefined;
+export type InteractionListener<T extends BaseInteraction = BaseInteraction> = (hook: InteractionHook<T>) => Promisable<boolean | undefined>;
 
 export interface BotOptions {
     readonly environment: BotEnvironment;
@@ -46,6 +48,7 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
     public readonly interactionHookCreator: TypeOptions["interactionHookCreator"];
     private _modules?: TypeOptions["modules"];
     private _stopping = false;
+    private readonly interactionListeners: InteractionListener[] = [];
 
     public constructor(options: BotOptions) {
         super();
@@ -80,6 +83,11 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
                 await this.stop();
             }).catch((error: unknown) => {
                 this.logger.error(new Error("Error while stopping bot", { cause: error }));
+            });
+        });
+        this._client.on("interactionCreate", (interaction) => {
+            this.handleInteraction(interaction).catch((error: unknown) => {
+                this.logger.error(new Error("Error while handling interaction", { cause: error }));
             });
         });
     }
@@ -162,5 +170,72 @@ export class Bot<Ready extends boolean = boolean> extends Emittery<BotMappedEven
                 await this.logger.error(new Error(`Error while executing onReady for module "${name}"`, { cause: error }));
             });
         });
+    }
+
+    public registerInteractionListener<T extends BaseInteraction = BaseInteraction>(
+        listener: InteractionListener<T>,
+    ): void {
+        this.interactionListeners.push(listener as InteractionListener);
+    }
+
+    private async handleInteraction(interaction: BaseInteraction): Promise<void> {
+        const hook = await this.interactionHookCreator(interaction);
+
+        for (const listener of this.interactionListeners) {
+            try {
+                const handled = await listener(hook);
+                if (handled === true) {
+                    return;
+                }
+            } catch (error) {
+                await this.handleInteractionError(hook, error);
+                return;
+            }
+        }
+    }
+
+    private async handleInteractionError(hook: InteractionHook<BaseInteraction>, error: unknown): Promise<void> {
+        const { UserError } = await import("errors/UserError");
+        const isUserError = error instanceof UserError;
+
+        const embedLike: NonNullable<EmbedLike> = isUserError
+            ? (this.style.createUserErrorEmbed?.(error)
+                ?? {
+                    color: 0xE61B05,
+                    description: error.message,
+                })
+            : (this.style.unknownErrorEmbed
+                ?? {
+                    color: 0xE61B05,
+                    description: "An unexpected error occurred",
+                });
+
+        try {
+            if (hook.interaction.isRepliable()) {
+                const { EmbedBuilder, MessageFlags } = await import("discord.js");
+                const embed = "toJSON" in embedLike ? new EmbedBuilder(embedLike.toJSON()) : new EmbedBuilder(embedLike);
+
+                if (isUserError) {
+                    if (hook.interaction.replied || hook.interaction.deferred) {
+                        await hook.interaction.editReply({ embeds: [embed], content: null, files: [], components: [] });
+                    } else {
+                        await hook.interaction.reply({ embeds: [embed], flags: [MessageFlags.Ephemeral] });
+                    }
+                } else {
+                    if (hook.interaction.replied || hook.interaction.deferred) {
+                        await hook.interaction.followUp({ embeds: [embed] });
+                    } else {
+                        await hook.interaction.reply({ embeds: [embed], flags: [MessageFlags.Ephemeral] });
+                    }
+                    this.logger.error(new Error("Failed to handle interaction", { cause: error }));
+                }
+            }
+        } catch (replyError) {
+            this.logger.error(new Error("Failed to send error response", { cause: replyError }));
+        }
+
+        if (!isUserError) {
+            this.logger.error(new Error("Unhandled error in interaction listener", { cause: error }));
+        }
     }
 }
